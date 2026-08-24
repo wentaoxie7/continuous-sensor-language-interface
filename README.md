@@ -48,18 +48,6 @@ The task uses the 9 raw inertial-signal channels from the UCI HAR dataset to pre
 - `evaluate_context_shuffle.py`
   Re-runs the trained context model after shuffling complete projected sensor embeddings across test examples.
 
-## Environment
-
-This project was developed in a Conda environment named `py12`.
-
-Recommended package versions:
-
-- `python 3.12`
-- `torch 2.2.2`
-- `transformers 4.49.0`
-
-`transformers 5.x` is not recommended here because it caused backend compatibility issues with `torch 2.2.2` in the local environment on August 24, 2026.
-
 ## Setup
 
 Create or activate your environment:
