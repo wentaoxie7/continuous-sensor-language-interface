@@ -146,35 +146,6 @@ python evaluate_context_shuffle.py --checkpoint-path context_embedding_classifie
 - The sensor window is inserted as a continuous embedding through `inputs_embeds`, not converted into text.
 - The context-model code includes a trainable-parameter budget check for the sensor encoder, projector, and classification head.
 
-## Files You Usually Should Not Commit
-
-The `.gitignore` already excludes:
-
-- `__pycache__/`
-- `.DS_Store`
-- model checkpoints such as `*.pt`
-- logs and output folders
-
-That means files like `direct_sensor_classifier.pt` and future context-model checkpoints will stay local unless you force-add them manually.
-
-## Suggested Git Upload Flow
-
-If you want to upload this project to GitHub:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit for HAR sensor context encoder challenge"
-```
-
-If this is a brand-new remote repository:
-
-```bash
-git branch -M main
-git remote add origin <your-repo-url>
-git push -u origin main
-```
-
 ## Notes
 
 - `README.txt` is the original dataset documentation from UCI HAR.
