@@ -91,8 +91,10 @@ The implementation uses only the 9 raw inertial-signal files from `train/Inertia
 
 ### 1. Direct Baseline
 
+The result reported in the technical note was produced with the default settings:
+
 ```bash
-python train.py
+python train.py --seed 42
 ```
 
 Optional example:
@@ -103,8 +105,10 @@ python train.py --epochs 10 --batch-size 64
 
 ### 2. Context-Embedding Model
 
+The result reported in the technical note was produced with the default settings, with `float32` used on Apple Silicon / MPS for stability:
+
 ```bash
-python train_context.py
+python train_context.py --seed 42 --llm-dtype float32
 ```
 
 Recommended on Apple Silicon / MPS:
@@ -121,10 +125,10 @@ python train_context.py --epochs 5 --batch-size 16 --llm-dtype float32
 
 ### 3. Shuffled-Embedding Check
 
-After training the context model, run:
+After training the context model, the reported shuffled-embedding result was produced with:
 
 ```bash
-python evaluate_context_shuffle.py --checkpoint-path context_embedding_classifier.pt
+python evaluate_context_shuffle.py --checkpoint-path context_embedding_classifier.pt --shuffle-seed 43
 ```
 
 ## Important Implementation Notes
@@ -133,6 +137,7 @@ python evaluate_context_shuffle.py --checkpoint-path context_embedding_classifie
 - The language model backbone is frozen, including the token-embedding table.
 - The sensor window is inserted as a continuous embedding through `inputs_embeds`, not converted into text.
 - The context-model code includes a trainable-parameter budget check for the sensor encoder, projector, and classification head.
+- The results documented in `TECHNICAL_NOTE.md` come from the default code settings instead of a separate hyperparameter sweep.
 
 ## Notes
 

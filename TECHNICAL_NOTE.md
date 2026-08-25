@@ -58,6 +58,7 @@ The shuffled-embedding evaluation reuses the trained context model but randomly 
 
 ## Training setup
 
+- The reported results in this note were obtained with the code's default settings rather than a separate hyperparameter search.
 - Optimizer: AdamW.
 - Metric: macro-F1.
 - Model selection: best validation macro-F1 checkpoint.
@@ -70,9 +71,14 @@ The shuffled-embedding evaluation reuses the trained context model but randomly 
   - Direct baseline epochs: `30`
   - Context epochs: `10`
   - Validation fraction: `0.2`
+  - Weight decay: `1e-4`
   - Learning rate:
     - Direct baseline: `1e-3`
     - Context model: `5e-4`
+  - Context projector hidden dimension: `512`
+  - Context prompt insertion token count: one projected sensor embedding
+  - Context shuffle-check seed: `43`
+  - Recommended Apple Silicon / MPS runtime setting used for stability: `--llm-dtype float32`
 
 ## Trainable parameters
 
@@ -82,7 +88,14 @@ Only these components are trainable in the context model:
 - Projector
 - Classification head
 
-The code enforces a default upper bound of `10,000,000` trainable parameters for those parts.
+Actual trainable parameter count for the default context model:
+
+- Sensor encoder: `143,488`
+- Projector: `625,088`
+- Classification head: `5,766`
+- Total trainable parameters: `774,342`
+
+This is below the enforced default upper bound of `10,000,000` trainable parameters.
 
 ## Limitations
 
@@ -91,14 +104,25 @@ The code enforces a default upper bound of `10,000,000` trainable parameters for
 - The shuffle check is a single reproducible diagnostic, not a full causal proof.
 - If the direct baseline already performs well, the context path may not justify the extra complexity.
 
+## Interpretation
+
+- The direct baseline is the strongest option for this task under the current setup: it achieves the best macro-F1 while remaining much smaller and simpler.
+- The context model does appear to use sensor information meaningfully, because shuffling complete projected embeddings drops macro-F1 from `91.71%` to `15.87%`.
+- However, the context path still underperforms the direct baseline by about `2.52%` macro-F1 points while requiring substantially more computation and engineering complexity.
+- Taken together, these results support the claim that continuous sensor embeddings can interface with a frozen LLM, but they do not support replacing the direct classifier for this HAR task.
+
 ## Recommendation
 
-The context-embedding approach is a useful proof of concept for continuous sensor-to-language-model interfaces, but it should only be developed further if it shows a clear performance gain or at least a meaningful dependence on matched sensor embeddings.
+For this specific 6-class HAR benchmark, the recommended practical choice is the direct sensor classifier. It is more accurate (`94.23%` vs `91.71%` macro-F1), much cheaper to train and run, and easier to maintain.
+
+The context-embedding approach is still a successful proof of concept for a continuous sensor-to-language-model interface, because the strong performance collapse after shuffled embeddings suggests that the model is genuinely using matched sensor context rather than exploiting prompt structure alone.
+
+The current recommendation is not to continue developing the frozen-LLM path as the primary solution for this task unless the project goal specifically requires a shared LLM-compatible interface for future multimodal inputs. If that broader interface goal is important, this prototype is promising enough to justify limited follow-up work, but not because it improves activity-classification accuracy on the current benchmark.
 
 ## Results Table
 
 | Condition | Macro-F1 |
 | --- | --- |
-| Direct sensor classifier |  |
-| Context-embedding model |  |
-| Context model with shuffled embeddings |  |
+| Direct sensor classifier |94.23%  |
+| Context-embedding model |91.71%  |
+| Context model with shuffled embeddings |15.87%  |
