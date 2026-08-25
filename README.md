@@ -1,14 +1,14 @@
 # Sensor Context Encoder Challenge
 
-This repository contains a compact PyTorch implementation for the UCI HAR smartphone activity-recognition challenge, with:
+This repository contains an implementation of the UCI HAR sensor-context challenge with three required conditions:
 
-- a direct sensor-classification baseline
-- a context-embedding model that projects sensor windows into the embedding space of a frozen `HuggingFaceTB/SmolLM2-360M-Instruct`
-- a shuffled-embedding evaluation for the sensor-dependence check
+1. a direct sensor-classification baseline
+2. a context-embedding model using a frozen `HuggingFaceTB/SmolLM2-360M-Instruct`
+3. a shuffled-embedding evaluation for the sensor-dependence check
 
-The task uses the 9 raw inertial-signal channels from the UCI HAR dataset to predict 6 activity classes.
+The task uses the 9 raw inertial-signal channels from the UCI Human Activity Recognition Using Smartphones dataset to predict 6 activity classes.
 
-## Project Structure
+## Repository Structure
 
 ```text
 .
@@ -27,6 +27,8 @@ The task uses the 9 raw inertial-signal channels from the UCI HAR dataset to pre
 ├── train.py
 ├── train_context.py
 ├── evaluate_context_shuffle.py
+├── TECHNICAL_NOTE.md
+├── requirements.txt
 ├── train/
 ├── test/
 ├── activity_labels.txt
@@ -35,36 +37,19 @@ The task uses the 9 raw inertial-signal channels from the UCI HAR dataset to pre
 └── README.txt
 ```
 
-## What Each Entry Point Does
+## Environment
 
-- `train.py`
-  Trains the direct baseline:
-  `sensor window -> sensor encoder -> linear classification head`
+The project was developed in a Conda environment named `py12`.
 
-- `train_context.py`
-  Trains the context model:
-  `sensor window -> sensor encoder -> projector -> frozen SmolLM2 -> linear head`
-
-- `evaluate_context_shuffle.py`
-  Re-runs the trained context model after shuffling complete projected sensor embeddings across test examples.
-
-## Setup
-
-Create or activate your environment:
-
-```bash
-conda activate py12
-```
-
-Install dependencies:
+Install dependencies with:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Dataset
+## Dataset Layout
 
-This repository is currently organized directly inside the UCI HAR dataset root. The code expects this layout:
+The code expects to run from the UCI HAR dataset root:
 
 ```text
 UCI HAR Dataset/
@@ -85,61 +70,63 @@ UCI HAR Dataset/
 └── har_classifier/
 ```
 
-The implementation uses only the 9 raw inertial-signal files from `train/Inertial Signals/` and `test/Inertial Signals/`.
+Only the 9 raw inertial-signal files in `train/Inertial Signals/` and `test/Inertial Signals/` are used. The 561 engineered features are not used.
 
-## Run Commands
+## Reproducing the Reported Results
+
+The results in `TECHNICAL_NOTE.md` were produced with the default code settings and `seed=42`.
 
 ### 1. Direct Baseline
-
-The result reported in the technical note was produced with the default settings:
 
 ```bash
 python train.py --seed 42
 ```
 
-Optional example:
-
-```bash
-python train.py --epochs 10 --batch-size 64
-```
-
 ### 2. Context-Embedding Model
 
-The result reported in the technical note was produced with the default settings, with `float32` used on Apple Silicon / MPS for stability:
+On Apple Silicon / MPS, the stable setting used for the reported run was:
 
 ```bash
 python train_context.py --seed 42 --llm-dtype float32
 ```
 
-Recommended on Apple Silicon / MPS:
-
-```bash
-python train_context.py --llm-dtype float32
-```
-
-Optional example:
-
-```bash
-python train_context.py --epochs 5 --batch-size 16 --llm-dtype float32
-```
-
 ### 3. Shuffled-Embedding Check
 
-After training the context model, the reported shuffled-embedding result was produced with:
-
 ```bash
-python evaluate_context_shuffle.py --checkpoint-path context_embedding_classifier.pt --shuffle-seed 43
+python evaluate_context_shuffle.py \
+  --checkpoint-path context_embedding_classifier.pt \
+  --shuffle-seed 43
 ```
 
-## Important Implementation Notes
+## Model Summary
 
-- The direct baseline and context model use the same subject-wise train/validation/test split logic.
+### Direct baseline
+
+```text
+sensor window -> sensor encoder -> linear classification head
+```
+
+### Context model
+
+```text
+sensor window -> sensor encoder -> projector -> frozen SmolLM2 -> linear head
+```
+
+Implementation details:
+
 - The language model backbone is frozen, including the token-embedding table.
-- The sensor window is inserted as a continuous embedding through `inputs_embeds`, not converted into text.
-- The context-model code includes a trainable-parameter budget check for the sensor encoder, projector, and classification head.
-- The results documented in `TECHNICAL_NOTE.md` come from the default code settings instead of a separate hyperparameter sweep.
+- The sensor embedding is inserted through `inputs_embeds`, not converted into text.
+- The context model uses the prompt:
+
+```text
+Classify the activity as walking, walking upstairs, walking downstairs, sitting, standing, or laying.
+
+Sensor context: <SENSOR>
+
+Activity:
+```
 
 ## Notes
 
 - `README.txt` is the original dataset documentation from UCI HAR.
-- The project currently lives inside the dataset directory for convenience. If you later want a cleaner public repo, we can move the code into a separate project root and keep the dataset as an external download step.
+- Additional implementation details, results, and conclusions are documented in `TECHNICAL_NOTE.md`.
